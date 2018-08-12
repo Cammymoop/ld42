@@ -35,7 +35,7 @@ export default class OverheadMapScene extends Phaser.Scene {
         this.inputNormalizer = new InputNormalizer(this.input);
         
         this.input.keyboard.on('keydown_R', () => this.scene.restart());
-        this.input.keyboard.on('keydown_G', () => this.gameOver());
+        //this.input.keyboard.on('keydown_G', () => this.spawnButterfly(true));
         
         this.input.keyboard.on('keydown_M', function (event) {
             this.registry.set('muted', !this.registry.get('muted'));
@@ -117,7 +117,7 @@ export default class OverheadMapScene extends Phaser.Scene {
 
         this.butterflies = [];
         this.butterflyDelay = 3000;
-        this.butterflySpawner = this.time.addEvent({delay: 1000, callback: () => this.spawnButterfly()});
+        this.butterflySpawner = this.time.addEvent({delay: 1000, callback: () => this.spawnButterfly(false)});
 
         // Physics
         this.physics.add.collider(this.player, this.collisionLayer);
@@ -158,6 +158,10 @@ export default class OverheadMapScene extends Phaser.Scene {
         this.bridgeBreakerDelay = 500 + factor*3500;
 
         this.butterflyDelay = 100 + factor*2900;
+
+        if (this.intensity % 10 === 0) {
+            this.spawnButterfly(true);
+        }
     }
 
     bridgeBreakerCallback() {
@@ -165,22 +169,29 @@ export default class OverheadMapScene extends Phaser.Scene {
         this.bridgeBreaker = this.time.addEvent({delay: this.bridgeBreakerDelay, callback: () => this.bridgeBreakerCallback()});
     }
 
-    spawnButterfly() {
+    spawnButterfly(gold) {
         let spawnPoint = this.randomMapEdge();
-        let butterflyPool = [];
-        let pushN = (val, number) => { for (let i = 0; i < number; i++) { butterflyPool.push(val); } };
-        let yellows = Math.floor(this.intensity / 3) * 2;
-        pushN('yellow', yellows);
-        let blues = Math.floor(Math.max(this.intensity - 2, 0) / 3);
-        pushN('blue', blues);
-        pushN('red', 6 + blues + blues);
-        //console.log([this.intensity, 'red' + 6, 'yellow' + yellows, 'blue' + blues]);
-        let color = Phaser.Utils.Array.GetRandom(butterflyPool);
+        let color = '';
+        if (!gold) {
+            let butterflyPool = [];
+            let pushN = (val, number) => { for (let i = 0; i < number; i++) { butterflyPool.push(val); } };
+            let yellows = Math.floor(this.intensity / 3) * 2;
+            pushN('yellow', yellows);
+            let blues = Math.floor(Math.max(this.intensity - 2, 0) / 3);
+            pushN('blue', blues);
+            pushN('red', 6 + blues + blues);
+            //console.log([this.intensity, 'red' + 6, 'yellow' + yellows, 'blue' + blues]);
+            color = Phaser.Utils.Array.GetRandom(butterflyPool);
+        } else {
+            color = "gold";
+        }
         let b = new Butterfly(this, spawnPoint.x, spawnPoint.y, color, spawnPoint.facing);
         this.add.existing(b);
         this.butterflies.push(b);
 
-        this.butterflySpawner = this.time.addEvent({delay: (Math.random()*1000 - 500) + this.butterflyDelay, callback: () => this.spawnButterfly()});
+        if (!gold) {
+            this.butterflySpawner = this.time.addEvent({delay: (Math.random()*1000 - 500) + this.butterflyDelay, callback: () => this.spawnButterfly(false)});
+        }
     }
 
     randomMapEdge() {
@@ -188,7 +199,7 @@ export default class OverheadMapScene extends Phaser.Scene {
         let wx = ax === 'x' ? 'y' : 'x';
         let invert = Math.random() > .5 ? true : false;
 
-        let coord = Math.random() * (ax === 'x' ? this.map.widthInPixels : this.map.heightInPixels);
+        let coord = Math.random() * ((ax === 'x' ? this.map.widthInPixels : this.map.heightInPixels) - 20) + 10;
         let wCoord = invert ? (wx === 'x' ? this.map.widthInPixels : this.map.heightInPixels) : 0;
 
         let output = {facing: ax === 'x' ? (invert ? constants.DIR_UP : constants.DIR_DOWN) : (invert ? constants.DIR_LEFT : constants.DIR_RIGHT)};
@@ -276,6 +287,15 @@ export default class OverheadMapScene extends Phaser.Scene {
             return true;
         }
         return false;
+    }
+
+    goldCaught() {
+        // repair all cracked bridges
+        let damagedTiles = [3, 5];
+        let allDamaged = this.collisionLayer.filterTiles((tile) => damagedTiles.includes(tile.index));
+        for (let tile of allDamaged) {
+            this.setCollisionTile(tile.x, tile.y, tile.index - 1);
+        }
     }
 
     damageBridge(tile) {

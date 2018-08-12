@@ -47,7 +47,10 @@ export default class PreloaderScene extends Phaser.Scene {
         this.load.atlas('butterfly-blue', 'img/butterfly_blue.png', 'img/butterfly_blue.json');
         this.load.atlas('butterfly-yellow', 'img/butterfly_yellow.png', 'img/butterfly_yellow.json');
 
+        this.load.atlas('butterfly-gold', 'img/butterfly_gold.png', 'img/butterfly_gold.json');
+
         this.load.atlas('particle', 'img/particle.png', 'img/particle.json');
+        this.load.atlas('particle-gold', 'img/particle_gold.png', 'img/particle_gold.json');
 
         // maps
         var mapId = 1;
@@ -87,7 +90,7 @@ export default class PreloaderScene extends Phaser.Scene {
             charsPerRow: 10,
             spacing: {x: 1, y: 0},
         }));
-        let colors = ['red', 'blue', 'yellow'];
+        let colors = ['red', 'blue', 'yellow', 'gold'];
         for (let c of colors) {
             let frames = this.frameNamesDuration(this.anims.generateFrameNames('butterfly-' + c, { prefix: 'butterfly_' + c + ' ', suffix: '.ase', start: 0, end: 1}));
             this.anims.create({ key: 'b-' + c + '-flap', frames: frames, repeat: -1 });
@@ -95,6 +98,9 @@ export default class PreloaderScene extends Phaser.Scene {
 
         let frames = this.frameNamesDuration(this.anims.generateFrameNames('particle', { prefix: 'Sprite-0014 ', suffix: '.', start: 0, end: 6}));
         this.anims.create({ key: 'particle-anim', frames: frames, repeat: 0 });
+
+        let goldFrames = this.frameNamesDuration(this.anims.generateFrameNames('particle-gold', { prefix: 'Sprite-0014 ', suffix: '.', start: 0, end: 6}));
+        this.anims.create({ key: 'particle-gold-anim', frames: goldFrames, repeat: 0 });
 
         //let gamepadConfig = document.localStorage.getItem('gamepad-config');
         let gamepadConfig = false;

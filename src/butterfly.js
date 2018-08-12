@@ -38,9 +38,17 @@ export default class Butterfly extends Phaser.GameObjects.Sprite {
         let sign = (this.facingDirection === constants.DIR_UP || this.facingDirection === constants.DIR_LEFT) ? -1 : 1;
 
         this[ax] += this.flySpeed * sign;
-        this[wx] = this.originalPos[wx] + Math.sin(time/(800/this.flySpeed)) * (this.color === "blue" ? 26 : (this.color === "yellow" ? 18 : 12));
+        let wave = 12;
+        if (this.color === "blue") {
+            wave = 26;
+        } else if (this.color === "yellow") {
+            wave = 18;
+        } else if (this.color === "gold") {
+            wave = 30;
+        }
+        this[wx] = this.originalPos[wx] + Math.sin(time/(800/this.flySpeed)) * wave;
 
-        if (this.color === 'blue') {
+        if (this.color === 'blue' || this.color === 'gold') {
             this.particleTime -= delta;
             if (this.particleTime < 0) {
                 this.spawnParticle();
@@ -56,9 +64,10 @@ export default class Butterfly extends Phaser.GameObjects.Sprite {
     }
 
     spawnParticle() {
-        let p = this.scene.add.sprite(this.x, this.y, 'particle');
+        let part = 'particle' + (this.color === "gold" ? "-gold" : "");
+        let p = this.scene.add.sprite(this.x, this.y, part);
         p.depth = 39;
-        p.play('particle-anim', false, Math.floor(Math.random() * 3));
+        p.play(part + '-anim', false, Math.floor(Math.random() * 3));
         p.on('animationoncomplete', () => p.destroy());
     }
 

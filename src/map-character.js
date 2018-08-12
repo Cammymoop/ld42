@@ -58,6 +58,10 @@ export default class MapCharacter extends Phaser.GameObjects.Sprite {
             } else if (b.color === "yellow") {
                 this.score += 10;
                 this.addGlue(2);
+            } else if (b.color === "gold") {
+                this.score += 1000;
+                this.addGlue(2);
+                this.scene.goldCaught();
             } else {
                 this.score += 2;
                 this.addGlue(1);
