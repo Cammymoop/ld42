@@ -75,11 +75,15 @@ export default class OverheadMapScene extends Phaser.Scene {
 
         // the tilemap
         this.map = this.make.tilemap({key: LoadedMaps.get(mapId)});
-        this.tileset = this.map.addTilesetImage('tiles_i_can_actually_use', 'tiles_img');
+        this.tileset = this.map.addTilesetImage('tiles_i_can_actually_use', 'tiles_img', 16, 16, 1, 2);
         this.collisionLayer = this.map.createDynamicLayer('Tile Layer 1', this.tileset, 0, 0);
         this.collisionLayer.depth = 0;
         this.collisionLayer.setOrigin(0);
         this.collisionLayer.setCollision(6);
+
+        let brace = this.add.sprite(this.map.widthInPixels / 2, this.map.heightInPixels, 'brace');
+        brace.depth = -10;
+        brace.setOrigin(0.5, 1);
 
         this.extraCollisionLayer = false;
         this.foregroundLayer = false;
@@ -137,7 +141,7 @@ export default class OverheadMapScene extends Phaser.Scene {
             }
         }
 
-        this.bridgeBreaker = this.time.addEvent({delay: 200, repeat: -1, callback: () => this.damageBridge(this.getRandomBridgeTile())});
+        this.bridgeBreaker = this.time.addEvent({delay: 4000, repeat: -1, callback: () => this.damageBridge(this.getRandomBridgeTile())});
 
         this.levelLoaded = true;
     }
@@ -164,6 +168,16 @@ export default class OverheadMapScene extends Phaser.Scene {
                 vel.set(x, y);
                 vel.normalize();
                 vel.set(vel.x*100, vel.y*100);
+                
+                if (vel.y < 0) {
+                    this.player.faceDirection(constants.DIR_UP);
+                } else if (vel.y > 0) {
+                    this.player.faceDirection(constants.DIR_DOWN);
+                } else if (vel.x > 0) {
+                    this.player.faceDirection(constants.DIR_RIGHT);
+                } else if (vel.x < 0) {
+                    this.player.faceDirection(constants.DIR_LEFT);
+                }
             }
         }
 
@@ -208,10 +222,34 @@ export default class OverheadMapScene extends Phaser.Scene {
         }
     }
 
+    playerOnGroundCheck() {
+        if (this.player.state === 'falling') {
+            return;
+        }
+        let respawnX = this.collisionLayer.tileToWorldX(11);
+        let respawnY = this.collisionLayer.tileToWorldY(19);
+        if (this.player.getTileNextTo(0, 0) === 6) {
+            this.player.setState('falling');
+            this.player.body.setVelocity(0, 0);
+            this.tweens.add({
+                targets: this.player,
+                scaleX: 0,
+                scaleY: 0,
+                duration: 2000,
+                onComplete: () => { 
+                    this.player.setState('stationary');
+                    this.player.setScale(1);
+                    this.player.x = respawnX;
+                    this.player.y = respawnY; 
+                },
+            });
+        }
+    }
+
     dropMapSection(tiles) {
         let rndStr = Math.random().toString(36).slice(2);
         let dropLayer = this.map.createBlankDynamicLayer('fall-section' + rndStr, this.tileset);
-        dropLayer.randomize(3, 3, 4, 4, [3, 2]);
+        //dropLayer.randomize(3, 3, 4, 4, [3, 2]);
         let keyCoord = (key) => { let split = key.split('_'); return {x: parseInt(split[0]), y: parseInt(split[1])}; };
         let xs = [];
         let ys = [];
@@ -227,54 +265,35 @@ export default class OverheadMapScene extends Phaser.Scene {
         }
         let sum = (arr) => arr.reduce((acc, val) => acc + val, 0);
         let avg = (arr) => Math.round(sum(arr)/arr.length);
-        //dropLayer.setDisplayOrigin(this.collisionLayer.tileToWorldX(avg(xs)), this.collisionLayer.tileToWorldX(avg(ys)));
-        dropLayer.pivotPointX = this.collisionLayer.tileToWorldX(avg(xs));
-        dropLayer.pivotPointY = this.collisionLayer.tileToWorldY(avg(ys));
-        dropLayer.resetAngle = function () {
-            this.rotation = 0;
-            this.x = 0;
-            this.y = 0;
-        };
-        dropLayer.addAngle = function (rotation) {
-            let x = this.x - this.pivotPointX;
-            let y = this.x - this.pivotPointY;
 
-            let sin = Math.sin(rotation);
-            let cos = Math.cos(rotation);
-            let newX = x * cos - y * sin;
-            let newY = x * sin + y * cos;
+        // I cant set the origin of a tile layer but I'll tween it's position
+        // to the origin point to simulate scaling it around that point
+        let targetX = this.collisionLayer.tileToWorldX(avg(xs));
+        let targetY = this.collisionLayer.tileToWorldY(avg(ys));
 
-            this.x = newX + this.pivotPointX;
-            this.y = newY + this.pivotPointY;
-            //this.rotation += rotation;
+        let posRounder = {
+            _x: dropLayer.x,
+            _y: dropLayer.y,
+            set x (val) { this._x = val; dropLayer.x = Math.round(val); }, get x () { return this._x; },
+            set y (val) { this._y = val; dropLayer.y = Math.round(val); }, get y () { return this._y; },
         };
-        dropLayer.changeToAngle = function (rotation) {
-            this.resetAngle();
-            this.addAngle(rotation);
-        }
-        dropLayer.setOrigin(1, 0.5);
-        //console.log([this.collisionLayer.tileToWorldX(avg(xs)), this.collisionLayer.tileToWorldX(avg(ys))]);
-        //dropLayer.setScale(0.5);
-        dropLayer.rotation = Math.PI/6;
 
-        let rotator = { // object with setter to enable tweening the angle of my layer
-            progress: 0,
-            set tweenProgress(val) { this.progress = val; this.updateAngle(); },
-            get tweenProgress() { return this.progress; },
-            updateAngle: function () {
-                let angle = Math.PI * 2 * this.progress;
-                this.target.changeToAngle(angle);
-            },
-            target: dropLayer,
-        };
+        
         this.tweens.add({
-            targets: rotator,
-            tweenProgress: 1,
+            targets: posRounder,
+            x: targetX,
+            y: targetY,
             duration: 2000,
-            onComplete: () => rotator.target.destroy()
+        });
+        this.tweens.add({
+            targets: dropLayer,
+            scaleX: 0,
+            scaleY: 0,
+            duration: 2000,
+            onComplete: () => dropLayer.destroy(),
         });
 
-        this.softPause();
+        //this.softPause();
     }
 
     platformCollapseCheck() {
@@ -337,11 +356,12 @@ export default class OverheadMapScene extends Phaser.Scene {
             }
             //console.log(fill.size);
 
-            if (!connected) {
+            if (!connected && fill.size > 1) {
                 // delete all unconnected tiles
                 this.dropMapSection(fill);
             }
         }
+        this.playerOnGroundCheck();
     }
 
     getForegroundTileAt(tileX, tileY) {
@@ -424,7 +444,14 @@ export default class OverheadMapScene extends Phaser.Scene {
     }
     pause() {
         this.softPause();
-        this.scene.sleep();
+        this.scene.pause();
+    }
+    togglePause() {
+        if (this.gamePause) {
+            this.resume();
+        } else {
+            this.pause();
+        }
     }
 
     pauseMenu() {

@@ -35,7 +35,10 @@ export default class PreloaderScene extends Phaser.Scene {
 
 
         this.load.spritesheet('player', 'img/guy.png', {frameWidth: 12, frameHeight: 14});
-        this.load.image('tiles_img', 'img/tiles_i_can_actually_use' + (constants.DEBUG ? 2 : 1) + '.png');
+        this.load.image('tiles_img', 'img/tiles_i_can_actually_use' + (constants.DEBUG ? 2 : 1) + '_extruded.png');
+
+        this.load.image('brace', 'img/brace.png');
+        this.load.image('net', 'img/net.png');
 
         this.load.atlas('butterfly-red', 'img/butterfly_red.png', 'img/butterfly_red.json');
         this.load.atlas('butterfly-blue', 'img/butterfly_blue.png', 'img/butterfly_blue.json');

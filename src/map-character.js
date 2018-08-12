@@ -13,8 +13,15 @@ export default class MapCharacter extends Phaser.GameObjects.Sprite {
 
         this.isSolid = true;
 
+        this.glueCount = 1;
+
         this.tilePosition = new Phaser.Geom.Point(tileX, tileY);
         this.setPosition((this.tilePosition.x * constants.TILE_SIZE) + constants.TILE_SIZE/2, (this.tilePosition.y * constants.TILE_SIZE) + constants.TILE_SIZE/2);
+
+        this.net = this.scene.add.sprite(this.x, this.y, 'net');
+        this.net.setOrigin(0.5, 1);
+        this.net.depth = 19;
+        this.net.visible = false;
 
         // state stuff
         this.state = "stationary";
@@ -25,11 +32,27 @@ export default class MapCharacter extends Phaser.GameObjects.Sprite {
         // Constants
         this.WALK_SPEED = 0.12;
 
-        this.scene.inputNormalizer.on("press_A", () => this.glueBridge());
+        this.scene.inputNormalizer.on("press_A", () => this.useNet());
+        this.scene.inputNormalizer.on("press_B", () => this.glueBridge());
+    }
+
+    useNet() {
+        this.body.setVelocity(0, 0);
+        this.setState('netting');
+        this.net.visible = true;
+        this.scene.time.addEvent({delay: 700, callback: () => this.putNetAway()});
+    }
+
+    putNetAway() {
+        this.net.visible = false;
+        this.setState('stationary');
     }
 
     glueBridge() {
-        console.log(['trying to glue', this.tilePosition]);
+        if (this.glueCount <= 0) {
+            return;
+        }
+        this.glueCount--;
         this.scene.glueBridge(this.tilePosition.x, this.tilePosition.y);
     }
 
@@ -61,6 +84,8 @@ export default class MapCharacter extends Phaser.GameObjects.Sprite {
         } else if (this.state === "walking") {
             //this.updateTilePosition();
         }
+        this.net.x = this.x;
+        this.net.y = this.y;
         this.updateTilePosition();
 
         var tileHere = this.getTileNextTo(0, 0);
@@ -74,8 +99,16 @@ export default class MapCharacter extends Phaser.GameObjects.Sprite {
         this.facingDirection = direction;
         if (direction === constants.DIR_UP) {
             this.setFrame(1);
-        } else {
+            this.net.rotation = 0;
+        } else if (direction === constants.DIR_RIGHT) {
+            this.setFrame(3);
+            this.net.rotation = Math.PI/2;
+        } else if (direction === constants.DIR_DOWN) {
             this.setFrame(0);
+            this.net.rotation = Math.PI;
+        } else if (direction === constants.DIR_LEFT) {
+            this.setFrame(2);
+            this.net.rotation = Math.PI/2 + Math.PI;
         }
     }
 
