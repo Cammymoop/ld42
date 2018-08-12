@@ -1,8 +1,8 @@
 export default {
     DEBUG: false,
 
-    WINDOW_WIDTH: 624,
-    WINDOW_HEIGHT: 372,
+    WINDOW_WIDTH: 312,
+    WINDOW_HEIGHT: 186,
     TILE_SIZE: 16,
 
     DIR_DOWN: 0,

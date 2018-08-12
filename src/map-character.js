@@ -40,6 +40,24 @@ export default class MapCharacter extends Phaser.GameObjects.Sprite {
         this.body.setVelocity(0, 0);
         this.setState('netting');
         this.net.visible = true;
+
+        let d = this.facingDirection;
+        let netX = this.x + (d === constants.DIR_LEFT ? -15 : (d === constants.DIR_RIGHT ? 15 : 0));
+        let netY = this.y + (d === constants.DIR_UP ? -15 : (d === constants.DIR_DOWN ? 15 : 0));
+        let caught = this.scene.catchButterflies(netX, netY);
+
+        this.scene.removeButterflies(caught);
+        for (let b of caught) {
+            if (b.color === "blue") {
+                this.addGlue(5);
+            } else if (b.color === "yellow") {
+                this.addGlue(2);
+            } else {
+                this.addGlue(1);
+            }
+            b.destroy();
+        }
+
         this.scene.time.addEvent({delay: 700, callback: () => this.putNetAway()});
     }
 
@@ -52,8 +70,13 @@ export default class MapCharacter extends Phaser.GameObjects.Sprite {
         if (this.glueCount <= 0) {
             return;
         }
-        this.glueCount--;
+        this.addGlue(-1);
         this.scene.glueBridge(this.tilePosition.x, this.tilePosition.y);
+    }
+
+    addGlue(count) {
+        this.glueCount += count;
+        this.scene.uiScene.updateGlue(this.glueCount);
     }
 
     setState(stateName, data) {

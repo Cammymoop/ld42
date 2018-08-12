@@ -6,14 +6,20 @@ export default class Butterfly extends Phaser.GameObjects.Sprite {
     constructor(scene, x, y, color, direction) {
         let texture = 'butterfly-' + color;
         super(scene, x, y, texture, 0);
-        this.create(color);
+        this.create(color, direction);
     }
 
     create(color, direction) {
-        this.depth = 20;
+        this.depth = 40;
+        this.flySpeed = (Math.random() * 0.8) + 0.5;
         this.color = color;
 
-        this.isSolid = true;
+        this.play('b-' + color + '-flap');
+
+        this.originalPos = {x: this.x, y: this.y};
+
+        this.PARTICLE_TIME = 600;
+        this.particleTime = this.PARTICLE_TIME;
 
         this.updateTilePosition();
 
@@ -22,28 +28,42 @@ export default class Butterfly extends Phaser.GameObjects.Sprite {
 
         // Constants
         this.FLY_SPEED = Math.random() * 0.12;
-
-        this.scene.inputNormalizer.on("press_A", () => this.glueBridge());
     }
     update(time, delta) {
         this.updateTilePosition();
 
+        let ax = (this.facingDirection === constants.DIR_UP || this.facingDirection === constants.DIR_DOWN) ? 'y' : 'x';
+        let wx = ax == 'y' ? 'x' : 'y';
+        let sign = (this.facingDirection === constants.DIR_UP || this.facingDirection === constants.DIR_LEFT) ? -1 : 1;
+
+        this[ax] += this.flySpeed * sign;
+        this[wx] = this.originalPos[wx] + Math.sin(time/(800/this.flySpeed)) * 12;
+
+        if (this.color === 'blue') {
+            this.particleTime -= delta;
+            if (this.particleTime < 0) {
+                this.spawnParticle();
+                this.particleTime = this.PARTICLE_TIME;
+            }
+        }
+
         if (this.x < -60 || this.x > this.scene.map.widthInPixels + 60) {
             this.die();
-        }
-        if (this.y < -60 || this.y > this.scene.map.heightInPixels + 60) {
+        } else if (this.y < -60 || this.y > this.scene.map.heightInPixels + 60) {
             this.die();
         }
-        var tileHere = this.getTileNextTo(0, 0);
-        var fgTileHere = this.getFGTileNextTo(0, 0);
-        if (tileHere === 7 || fgTileHere === 7) {
-            // nothing
-        }
+    }
+
+    spawnParticle() {
+        let p = this.scene.add.sprite(this.x, this.y, 'particle');
+        p.depth = 39;
+        p.play('particle-anim', false, Math.floor(Math.random() * 3));
+        p.on('animationoncomplete', () => p.destroy());
     }
 
     overlapsCircle(x, y, radius) {
         let point = new Phaser.Math.Vector2(x, y);
-        let maxDist = color === 'red' ? 5 : 8; 
+        let maxDist = this.color === 'red' ? 5 : 8; 
 
         maxDist = Math.pow(radius + maxDist, 2); // using square distance because it's faster to calculate
         return point.distanceSq(this) <= maxDist;
@@ -73,6 +93,7 @@ export default class Butterfly extends Phaser.GameObjects.Sprite {
     }
 
     die() {
+        this.scene.removeButterflies([this]);
         this.destroy();
     }
 }

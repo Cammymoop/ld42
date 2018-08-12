@@ -2,6 +2,7 @@ import Phaser from "./phaser-module.js";
 import constants from "./constants.js";
 import MapCharacter from "./map-character.js";
 import InputNormalizer from "./input-normalizer.js";
+import Butterfly from "./butterfly.js";
 
 import { LoadedMaps } from "./preloader-scene.js";
 
@@ -21,8 +22,7 @@ export default class OverheadMapScene extends Phaser.Scene {
         }
 
         if (!this.registry.has('muted')) {
-            this.registry.set('muted', false);
-        }
+            this.registry.set('muted', false); }
         this.sound.mute = this.registry.get('muted');
 
         this.gamePause = false;
@@ -115,15 +115,8 @@ export default class OverheadMapScene extends Phaser.Scene {
         this.player.body.setCircle(4, 2, 6);
 
         this.butterflies = [];
-        let butterflyColors = ['red', 'blue', 'yellow'];
-        for (let i = 0; i < 30; i++) {
-            let color = Phaser.Utils.Array.GetRandom(butterflyColors);
-            let b = this.add.sprite(20 + (constants.WINDOW_WIDTH/33) * i, constants.WINDOW_HEIGHT - 10, 'butterfly-' + color);
-            b.depth = 40;
-            b.flySpeed = (Math.random() * 0.8) + 0.5;
-            b.play('b-' + color + '-flap');
-            this.butterflies.push(b);
-        }
+        this.butterflyDelay = 3000;
+        this.butterflySpawner = this.time.addEvent({delay: 1000, callback: () => this.spawnButterfly()});
 
         // Physics
         this.physics.add.collider(this.player, this.collisionLayer);
@@ -144,6 +137,30 @@ export default class OverheadMapScene extends Phaser.Scene {
         this.bridgeBreaker = this.time.addEvent({delay: 4000, repeat: -1, callback: () => this.damageBridge(this.getRandomBridgeTile())});
 
         this.levelLoaded = true;
+    }
+
+    spawnButterfly() {
+        let spawnPoint = this.randomMapEdge();
+        let color = Phaser.Utils.Array.GetRandom(['red', 'red', 'red', 'red', 'red', 'red', 'blue', 'yellow', 'yellow', 'yellow']);
+        let b = new Butterfly(this, spawnPoint.x, spawnPoint.y, color, spawnPoint.facing);
+        this.add.existing(b);
+        this.butterflies.push(b);
+
+        this.butterflySpawner = this.time.addEvent({delay: (Math.random()*1000 - 500) + this.butterflyDelay, callback: () => this.spawnButterfly()});
+    }
+
+    randomMapEdge() {
+        let ax = Math.random() > .5 ? 'x' : 'y';
+        let wx = ax === 'x' ? 'y' : 'x';
+        let invert = Math.random() > .5 ? true : false;
+
+        let coord = Math.random() * (ax === 'x' ? this.map.widthInPixels : this.map.heightInPixels);
+        let wCoord = invert ? (wx === 'x' ? this.map.widthInPixels : this.map.heightInPixels) : 0;
+
+        let output = {facing: ax === 'x' ? (invert ? constants.DIR_UP : constants.DIR_DOWN) : (invert ? constants.DIR_LEFT : constants.DIR_RIGHT)};
+        output[ax] = coord;
+        output[wx] = wCoord;
+        return output;
     }
 
     update(time, delta) {
@@ -182,10 +199,24 @@ export default class OverheadMapScene extends Phaser.Scene {
         }
 
         for (let b of this.butterflies) {
-            b.y -= b.flySpeed;
+            b.update(time, delta);
         }
 
         this.player.update(time, delta);
+    }
+
+    catchButterflies(x, y) {
+        let caught = [];
+        for (let b of this.butterflies) {
+            if (b.overlapsCircle(x, y, 5)) {
+                caught.push(b);
+            }
+        }
+        return caught;
+    }
+
+    removeButterflies(bs) {
+        this.butterflies = this.butterflies.filter((b) => !bs.includes(b));
     }
 
     getRandomBridgeTile() {

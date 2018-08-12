@@ -47,6 +47,8 @@ export default class InputNormalizer extends Phaser.Events.EventEmitter {
         this.gamepadAxes = new Map([ 
             ["altDpadH", {pos: "right", neg: "left"}],
             ["altDpadV", {pos: "down", neg: "up"}],
+            ["leftStickH", {pos: "right", neg: "left"}],
+            ["leftStickV", {pos: "down", neg: "up"}],
         ]);
         this.keyboardKeys = new Map([ 
             ["Space", "A"],

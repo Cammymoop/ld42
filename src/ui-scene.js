@@ -9,19 +9,22 @@ export default class UIScene extends Phaser.Scene {
     }
 
     create(data) {
-        this.cameras.main.zoom = 6;
+        this.cameras.main.zoom = 4;
         this.cameras.main.centerOn(constants.WINDOW_WIDTH/2, constants.WINDOW_HEIGHT/2);
 
         this.inputNormalizer = new InputNormalizer(this.input);
 
+        this.header = this.add.sprite(0, 0, 'ui-header').setOrigin(0);
+
+        this.glueUI = this.add.bitmapText(2, 2, 'basic-font', 'GLUE: 1');
+        this.glueUI.setLetterSpacing(1);
+        this.glueUI.setOrigin(0);
+
         this.pauseMenu = false;
+    }
 
-        this.inputNormalizer.on('press_down', () => this.menuCursorMove('down'));
-        this.inputNormalizer.on('press_up', () => this.menuCursorMove('up'));
-
-        this.inputNormalizer.on('press_A', () => this.selectMenuItem());
-
-        this.input.enabled = false;
+    updateGlue(count) {
+        this.glueUI.text = 'GLUE: ' + count;
     }
 
     showPauseMenu() {
