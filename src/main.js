@@ -1,11 +1,13 @@
 let Phaser = window.Phaser;
 import PreloaderScene from "./preloader-scene.js";
 
+import constants from "./constants.js";
+
 window.onload = function() {
     var config = {
         type: Phaser.AUTO,
-        width: 624*2,
-        height: 372*2,
+        width: constants.WINDOW_WIDTH*4,
+        height: constants.WINDOW_HEIGHT*4,
         pixelArt: true,
         zoom: 1,
         parent: 'gameContainer',

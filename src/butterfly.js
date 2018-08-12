@@ -11,14 +11,15 @@ export default class Butterfly extends Phaser.GameObjects.Sprite {
 
     create(color, direction) {
         this.depth = 40;
-        this.flySpeed = (Math.random() * 0.8) + 0.5;
+        let speedScale = color === "red" ? 0.5 : (color === "yellow" ? 0.8 : 1.1);
+        this.flySpeed = (Math.random() * 0.8) + (color === 'red' ? 0.3 : 0.5);
         this.color = color;
 
         this.play('b-' + color + '-flap');
 
         this.originalPos = {x: this.x, y: this.y};
 
-        this.PARTICLE_TIME = 600;
+        this.PARTICLE_TIME = 420;
         this.particleTime = this.PARTICLE_TIME;
 
         this.updateTilePosition();
@@ -37,7 +38,7 @@ export default class Butterfly extends Phaser.GameObjects.Sprite {
         let sign = (this.facingDirection === constants.DIR_UP || this.facingDirection === constants.DIR_LEFT) ? -1 : 1;
 
         this[ax] += this.flySpeed * sign;
-        this[wx] = this.originalPos[wx] + Math.sin(time/(800/this.flySpeed)) * 12;
+        this[wx] = this.originalPos[wx] + Math.sin(time/(800/this.flySpeed)) * (this.color === "blue" ? 26 : (this.color === "yellow" ? 18 : 12));
 
         if (this.color === 'blue') {
             this.particleTime -= delta;

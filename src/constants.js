@@ -1,7 +1,7 @@
 export default {
     DEBUG: false,
 
-    WINDOW_WIDTH: 312,
+    WINDOW_WIDTH: 280,
     WINDOW_HEIGHT: 186,
     TILE_SIZE: 16,
 

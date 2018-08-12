@@ -41,6 +41,7 @@ export default class PreloaderScene extends Phaser.Scene {
         this.load.image('net', 'img/net.png');
         this.load.image('symbols', 'img/symbols.png');
         this.load.image('ui-header', 'img/ui-header.png');
+        this.load.image('game-over-back', 'img/game_over_back.png');
 
         this.load.atlas('butterfly-red', 'img/butterfly_red.png', 'img/butterfly_red.json');
         this.load.atlas('butterfly-blue', 'img/butterfly_blue.png', 'img/butterfly_blue.json');

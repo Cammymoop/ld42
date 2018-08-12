@@ -35,6 +35,7 @@ export default class OverheadMapScene extends Phaser.Scene {
         this.inputNormalizer = new InputNormalizer(this.input);
         
         this.input.keyboard.on('keydown_R', () => this.scene.restart());
+        this.input.keyboard.on('keydown_G', () => this.gameOver());
         
         this.input.keyboard.on('keydown_M', function (event) {
             this.registry.set('muted', !this.registry.get('muted'));
@@ -43,7 +44,7 @@ export default class OverheadMapScene extends Phaser.Scene {
         
         this.input.keyboard.on('keydown_P', function (event) {
             var curZoom = this.cameras.main.zoom;
-            this.cameras.main.zoom = {2: 4, 4: 1, 1: 2}[curZoom];
+            this.cameras.main.zoom = {2: 4, 4: 2}[curZoom];
         }, this);
 
         // load the map
@@ -133,15 +134,48 @@ export default class OverheadMapScene extends Phaser.Scene {
                 }
             }
         }
+        this.activePlatforms = this.platformCoords.size;
 
-        this.bridgeBreaker = this.time.addEvent({delay: 4000, repeat: -1, callback: () => this.damageBridge(this.getRandomBridgeTile())});
+        this.bridgeBreakerDelay = 4000;
+        this.bridgeBreaker = this.time.addEvent({delay: this.bridgeBreakerDelay, callback: () => this.bridgeBreakerCallback()});
+
+        this.intensity = 1;
+        this.uiScene.updateLevel(1);
+        this.intensityDelay = 30000;
+        this.unpausedTime = 0;
 
         this.levelLoaded = true;
+        this.isGameOver = false;
+        this.uiScene.unGameOver();
+    }
+
+    increaseIntensity() {
+        this.intensity++;
+        this.uiScene.updateLevel(this.intensity);
+
+        let x = this.intensity;
+        let factor = (1/Math.pow(2, x/13));
+        this.bridgeBreakerDelay = 500 + factor*3500;
+
+        this.butterflyDelay = 100 + factor*2900;
+    }
+
+    bridgeBreakerCallback() {
+        this.damageBridge(this.getRandomBridgeTile());
+        this.bridgeBreaker = this.time.addEvent({delay: this.bridgeBreakerDelay, callback: () => this.bridgeBreakerCallback()});
     }
 
     spawnButterfly() {
         let spawnPoint = this.randomMapEdge();
-        let color = Phaser.Utils.Array.GetRandom(['red', 'red', 'red', 'red', 'red', 'red', 'blue', 'yellow', 'yellow', 'yellow']);
+        let butterflyPool = [];
+        let pushN = (val, number) => { for (let i = 0; i < number; i++) { butterflyPool.push(val); } };
+        let yellows = Math.floor(this.intensity / 3) * 2;
+        pushN('yellow', yellows);
+        let blues = Math.floor(Math.max(this.intensity - 2, 0) / 3);
+        pushN('blue', blues);
+        pushN('red', 6 + blues + blues);
+        //console.log([this.intensity, 'red' + 6, 'yellow' + yellows, 'blue' + blues]);
+        let color = Phaser.Utils.Array.GetRandom(butterflyPool);
         let b = new Butterfly(this, spawnPoint.x, spawnPoint.y, color, spawnPoint.facing);
         this.add.existing(b);
         this.butterflies.push(b);
@@ -167,6 +201,13 @@ export default class OverheadMapScene extends Phaser.Scene {
         this.inputNormalizer.update(); // update gamepad axes
         if (!this.levelLoaded || this.gamePause) {
             return;
+        }
+
+        this.unpausedTime += delta;
+
+        // intensity
+        if (!this.isGameOver && this.unpausedTime / this.intensityDelay > this.intensity) {
+            this.increaseIntensity();
         }
 
         let right = this.inputNormalizer.right.isDown;
@@ -232,7 +273,9 @@ export default class OverheadMapScene extends Phaser.Scene {
         let curTile = this.getCollisionTileAt(tileX, tileY);
         if (curTile === 2 || curTile === 3) {
             this.setCollisionTile(tileX, tileY, curTile + 2);
+            return true;
         }
+        return false;
     }
 
     damageBridge(tile) {
@@ -321,10 +364,26 @@ export default class OverheadMapScene extends Phaser.Scene {
             scaleX: 0,
             scaleY: 0,
             duration: 2000,
-            onComplete: () => dropLayer.destroy(),
+            onComplete: () => {
+                if (typeof dropLayer.layer !== "undefined") {
+                    dropLayer.destroy();
+                    this.sys.events.off('shutdown', dropLayer.destroy);
+                } 
+            },
         });
 
         //this.softPause();
+    }
+
+    gameOver() {
+        if (this.isGameOver) {
+            return;
+        }
+        this.bridgeBreaker.paused = true;
+        console.log('game over');
+        this.isGameOver = true;
+        this.player.setState('gameover');
+        this.uiScene.gameOver();
     }
 
     platformCollapseCheck() {
@@ -334,6 +393,9 @@ export default class OverheadMapScene extends Phaser.Scene {
                 uncheckedPlatforms.push(key);
             }
         }
+        if (this.activePlatforms < 2) {
+            return;
+        }
         let coordKey = (coord) => (coord.x + '_' + coord.y);
         let keyCoord = (key) => { let split = key.split('_'); return {x: split[0], y: split[1]}; };
         let surround_ = (x, y) => [{x: x, y: y - 1}, {x: x + 1, y: y}, {x: x, y: y + 1}, {x: x - 1, y: y}];
@@ -341,6 +403,7 @@ export default class OverheadMapScene extends Phaser.Scene {
 
         let sanity = 0;
         while (uncheckedPlatforms.length > 0) {
+            let platformsDropped = 1;
             if (sanity++ > 100000) {
                 console.log('infinite loop!');
                 return;
@@ -368,6 +431,7 @@ export default class OverheadMapScene extends Phaser.Scene {
                     }
                     if (uncheckedPlatforms.includes(curKey)) {
                         uncheckedPlatforms.splice(uncheckedPlatforms.indexOf(curKey), 1);
+                        platformsDropped++;
                     }
                     let curCoord = keyCoord(curKey);
                     let surroundPos = surround(curCoord);
@@ -390,9 +454,16 @@ export default class OverheadMapScene extends Phaser.Scene {
             if (!connected && fill.size > 1) {
                 // delete all unconnected tiles
                 this.dropMapSection(fill);
+                console.log('subtracting from ' + fill.size + ' ' + platformsDropped);
+                this.activePlatforms -= platformsDropped;
+                console.log(this.activePlatforms);
             }
         }
         this.playerOnGroundCheck();
+        console.log(this.activePlatforms);
+        if (this.activePlatforms < 3) {
+            this.gameOver();
+        }
     }
 
     getForegroundTileAt(tileX, tileY) {
@@ -412,11 +483,6 @@ export default class OverheadMapScene extends Phaser.Scene {
             if (t.index !== -1) {
                 return t.index;
             }
-        }
-        if (!this.collisionLayer.getTileAt(tileX, tileY, true)) {
-            console.log([tileX, tileY])
-            console.log('bad tile?');
-            console.log(this.collisionLayer.getTileAt(tileX, tileY, true));
         }
         return this.collisionLayer.getTileAt(tileX, tileY, true).index;
     }
@@ -459,11 +525,13 @@ export default class OverheadMapScene extends Phaser.Scene {
     softResume() {
         this.gamePause = false;
         this.bridgeBreaker.paused = false;
+        this.butterflySpawner.paused = false;
         console.log('resuming');
     }
     softPause() {
         this.gamePause = true;
         this.bridgeBreaker.paused = true;
+        this.butterflySpawner.paused = true;
         console.log('pausing');
     }
     toggleSoftPause() {

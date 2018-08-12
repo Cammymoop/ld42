@@ -14,6 +14,10 @@ export default class MapCharacter extends Phaser.GameObjects.Sprite {
         this.isSolid = true;
 
         this.glueCount = 1;
+        this.scene.uiScene.updateGlue(1);
+
+        this.score = 0;
+        this.scene.uiScene.updateScore(0);
 
         this.tilePosition = new Phaser.Geom.Point(tileX, tileY);
         this.setPosition((this.tilePosition.x * constants.TILE_SIZE) + constants.TILE_SIZE/2, (this.tilePosition.y * constants.TILE_SIZE) + constants.TILE_SIZE/2);
@@ -49,14 +53,18 @@ export default class MapCharacter extends Phaser.GameObjects.Sprite {
         this.scene.removeButterflies(caught);
         for (let b of caught) {
             if (b.color === "blue") {
+                this.score += 200;
                 this.addGlue(5);
             } else if (b.color === "yellow") {
+                this.score += 10;
                 this.addGlue(2);
             } else {
+                this.score += 2;
                 this.addGlue(1);
             }
             b.destroy();
         }
+        this.scene.uiScene.updateScore(this.score);
 
         this.scene.time.addEvent({delay: 700, callback: () => this.putNetAway()});
     }
@@ -70,8 +78,10 @@ export default class MapCharacter extends Phaser.GameObjects.Sprite {
         if (this.glueCount <= 0) {
             return;
         }
-        this.addGlue(-1);
-        this.scene.glueBridge(this.tilePosition.x, this.tilePosition.y);
+        let glued = this.scene.glueBridge(this.tilePosition.x, this.tilePosition.y);
+        if (glued) {
+            this.addGlue(-1);
+        }
     }
 
     addGlue(count) {
