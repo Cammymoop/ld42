@@ -1,6 +1,5 @@
 import Phaser from "./phaser-module.js";
 import constants from "./constants.js";
-import InputNormalizer from "./input-normalizer.js";
 
 export default class UIScene extends Phaser.Scene {
 
@@ -11,8 +10,6 @@ export default class UIScene extends Phaser.Scene {
     create(data) {
         this.cameras.main.zoom = 4;
         this.cameras.main.centerOn(constants.WINDOW_WIDTH/2, constants.WINDOW_HEIGHT/2);
-
-        this.inputNormalizer = new InputNormalizer(this.input);
 
         this.header = this.add.sprite(0, 0, 'ui-header').setOrigin(0);
 
@@ -86,6 +83,5 @@ export default class UIScene extends Phaser.Scene {
     }
 
     update(time, delta) {
-        this.inputNormalizer.update();
     }
 }

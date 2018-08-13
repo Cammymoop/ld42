@@ -61,6 +61,12 @@ export default class InputNormalizer extends Phaser.Events.EventEmitter {
             ["ArrowRight", "right"],
         ]);
 
+        this.inputPlugin.keyboard.addKey("Space").preventDefault = true;
+        this.inputPlugin.keyboard.addKey("Left").preventDefault = true;
+        this.inputPlugin.keyboard.addKey("Right").preventDefault = true;
+        this.inputPlugin.keyboard.addKey("Up").preventDefault = true;
+        this.inputPlugin.keyboard.addKey("Down").preventDefault = true;
+
         this.axesHeld = {};
         this.axisButtonMin = 0.4;
 
